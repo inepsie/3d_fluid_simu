@@ -1,0 +1,45 @@
+#version 450
+layout(local_size_x = 8 , local_size_y = 8, local_size_z = 8) in;
+layout (rgba32f, binding = 0) uniform image3D img_output;
+
+uniform sampler3D tex_vel;
+uniform sampler3D tex_p;
+uniform int b;
+uniform int w;
+
+void main(void) {
+ float fw = float(w);
+ ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
+ ivec3 c = coords;
+ //if(coords.x == 0) c.x = 1;
+ //if(coords.y == 0) c.y = 1;
+ //if(coords.x == (w-1)) c.x = w - 2;
+ //if(coords.y == (w-1)) c.y = w - 2;
+
+ float h = 1.0 / fw;
+ vec4 current = texelFetch(tex_vel, coords, 0);
+
+ float x = current.x - 0.5 *
+  (texelFetch(tex_p, coords + ivec3(1, 0, 0), 0).x -
+   texelFetch(tex_p, coords - ivec3(1, 0, 0), 0)).x / h;
+ float y = current.y - 0.5 *
+  (texelFetch(tex_p, coords + ivec3(0, 1, 0), 0).x -
+   texelFetch(tex_p, coords - ivec3(0, 1, 0), 0)).x / h;
+ float z = current.z - 0.5 *
+  (texelFetch(tex_p, coords + ivec3(0, 0, 1), 0).x -
+   texelFetch(tex_p, coords - ivec3(0, 0, 1), 0)).x / h;
+
+ //fragColor = vec4(bnd.w * x, bnd.w * y, 0.0, 0.0);
+ vec4 value = vec4(x, y, z, 0.0);
+
+ /*
+ if(bool(b)){
+  if(coords.x == 0) value = vec4(-2.0 * value.x, value.y, value.z, 1.0);
+  if(coords.y == 0) value = vec4(value.x, -2.0 * value.y, value.z, 1.0);
+  if(coords.x == (w-1)) value = vec4(-2.0 * value.x, value.y, value.z, 1.0);
+  if(coords.y == (w-1)) value = vec4(value.x, -2.0 * value.y, value.z, 1.0);
+ }
+*/
+
+ imageStore(img_output, coords, value);
+}

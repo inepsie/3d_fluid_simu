@@ -1,0 +1,33 @@
+#version 450
+
+layout(local_size_x = 8 , local_size_y = 8, local_size_z = 8) in;
+
+layout (rgba32f, binding = 0) uniform image3D img_output;
+
+uniform sampler3D input_tex;
+uniform ivec3 add_source;
+uniform vec3 motion;
+uniform float dt;
+uniform int w ;
+
+void main()
+{
+ ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
+ //vec2 c = vec2(gl_GlobalInvocationID.xy);
+ //vec3 c = vec2(coords.x, w - coords.y, coords.z);
+ vec4 value = texelFetch(input_tex, coords, 0);
+ int larg = w / 12;
+
+ if((coords.y < w - add_source.y + larg) &&
+    (coords.y > w - add_source.y - larg) &&
+    (coords.x < add_source.x + larg) &&
+    (coords.x > add_source.x - larg) &&
+    (coords.z < add_source.z + larg) &&
+    (coords.z > add_source.z - larg)){
+  //value = vec4(value.x + motion.x, value.y + motion.y, value.z + motion.z, 0.0);
+  value =  vec4(motion.x, motion.y, motion.z, 0.0);
+ }
+ //value = vec4(0.1, 0.0, 0.0, 0.0);
+ //if(value.x == 0.0) value.x = 1.0;
+ imageStore(img_output, coords, value);
+}

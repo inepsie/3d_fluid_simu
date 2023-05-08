@@ -1,0 +1,67 @@
+#version 450
+layout(local_size_x = 8 , local_size_y = 8, local_size_z = 8) in;
+layout (rgba32f, binding = 0) uniform image3D img_output;
+
+uniform sampler3D tex;
+uniform sampler3D tex_advect;
+uniform float dt;
+uniform int b;
+uniform int w;
+uniform float nl;
+//TODO uniform float fw
+//TODO voir si la gestion de N = size + 2 change qqch (cf papier Jos Stam)
+
+void main(void) {
+ float fw = float(w);
+ ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
+ ivec3 c = coords;
+ /*
+ if(coords.x == 0) c.x = 1;
+ if(coords.y == 0) c.y = 1;
+ if(coords.z == 0) c.z = 1;
+ if(coords.x == (w-1)) c.x = w - 2;
+ if(coords.y == (w-1)) c.y = w - 2;
+ if(coords.z == (w-1)) c.z = w - 2;
+ */
+
+ float dt0 = fw * dt;
+ float i0, i1, j0, j1, k0, k1, s1, s0, t1, t0, u0, u1;
+ vec3 adv = -1.0 * vec4(texelFetch(tex_advect, c, 0)).xyz;
+ float x = float(c.x) - dt0 * adv.x;
+ float y = float(c.y) - dt0 * adv.y;
+ float z = float(c.z) - dt0 * adv.z;
+ if(x<0.5) x = 0.5; else if(x > fw + 0.5) x = fw + 0.5; i0 = floor(x); i1 = i0 + 1;
+ if(y<0.5) y = 0.5; else if(y > fw + 0.5) y = fw + 0.5; j0 = floor(y); j1 = j0 + 1;
+ if(z<0.5) z = 0.5; else if(z > fw + 0.5) z = fw + 0.5; k0 = floor(z); k1 = k0 + 1;
+ s1 = x - i0; s0 = 1 - s1;
+ t1 = y - j0; t0 = 1 - t1;
+ u1 = z - k0; u0 = 1 - u1;
+ vec4 i0_j0_k0 = texelFetch(tex, ivec3(i0, j0, k0), 0);
+ vec4 i0_j0_k1 = texelFetch(tex, ivec3(i0, j0, k1), 0);
+ vec4 i0_j1_k0 = texelFetch(tex, ivec3(i0, j1, k0), 0);
+ vec4 i0_j1_k1 = texelFetch(tex, ivec3(i0, j1, k1), 0);
+ vec4 i1_j0_k0 = texelFetch(tex, ivec3(i1, j0, k0), 0);
+ vec4 i1_j0_k1 = texelFetch(tex, ivec3(i1, j0, k1), 0);
+ vec4 i1_j1_k0 = texelFetch(tex, ivec3(i1, j1, k0), 0);
+ vec4 i1_j1_k1 = texelFetch(tex, ivec3(i1, j1, k1), 0);
+ vec4 value = u0 * (s0 * (t0*i0_j0_k0 + t1*i0_j1_k0) + s1 * (t0*i1_j0_k0 + t1*i1_j1_k0))
+  + u1 * (s0 * (t0*i0_j0_k1 + t1*i0_j1_k1) + s1 * (t0*i1_j0_k1 + t1*i1_j1_k1));
+ //vec4 value =  s0 * (t0*i0_j0 + t1*i0_j1) + s1 * (t0*i1_j0 + t1*i1_j1);
+
+ /*
+ if(bool(b)){
+  if(coords.x == 0) value = vec4(-2.0 * value.x, value.y, value.z, 1.0);
+  if(coords.y == 0) value = vec4(value.x, -2.0 * value.y, value.z, 1.0);
+  if(coords.z == 0) value = vec4(value.x, value.y, -2.0 * value.z, 1.0);
+  if(coords.x == (w-1)) value = vec4(-2.0 * value.x, value.y, value.z, 1.0);
+  if(coords.y == (w-1)) value = vec4(value.x, -2.0 * value.y, value.z, 1.0);
+  if(coords.z == (w-1)) value = vec4(value.x, value.y, -2.0 * value.z, 1.0);
+ }
+ */
+
+ //value = texelFetch(tex, ivec3(coords.x + adv.x, coords.y + adv.y, coords.z + adv.z), 0);
+ //value = vec4(value.r, value.g, value.b, value.a);
+ //value = vec4(value.r, value.g, value.b, 1.0);
+ value.a = pow(value.a, nl);
+ imageStore(img_output, coords, value);
+}

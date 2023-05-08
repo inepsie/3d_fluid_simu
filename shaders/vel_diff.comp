@@ -1,0 +1,43 @@
+#version 450
+
+layout(local_size_x = 8 , local_size_y = 8, local_size_z = 8) in;
+
+layout (rgba32f, binding = 0) uniform image3D img_output;
+
+uniform sampler3D input_tex;
+uniform float dt;
+uniform int b;
+uniform int w;
+uniform float loss;
+uniform float diff;
+
+void main()
+{
+
+ float fw = float(w);
+ ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
+ ivec3 c = coords;
+ float a = dt * diff * fw * fw * fw;
+
+ //texel_x_p == x plus, texel_x_m == x moins
+ vec4 texel = texelFetch(input_tex, c, 0);
+ vec4 texel_x_p = texelFetch(input_tex, ivec3(c.x + 1, c.y, c.z), 0);
+ vec4 texel_x_m = texelFetch(input_tex, ivec3(c.x - 1, c.y, c.z), 0);
+ vec4 texel_y_p = texelFetch(input_tex, ivec3(c.x, c.y + 1, c.z), 0);
+ vec4 texel_y_m = texelFetch(input_tex, ivec3(c.x, c.y - 1, c.z), 0);
+ vec4 texel_z_p = texelFetch(input_tex, ivec3(c.x, c.y, c.z + 1), 0);
+ vec4 texel_z_m = texelFetch(input_tex, ivec3(c.x, c.y, c.z - 1), 0);
+
+ vec4 value = ( texel +
+                a * (
+                 texel_x_p +
+                 texel_x_m +
+                 texel_y_p +
+                 texel_y_m +
+                 texel_z_p +
+                 texel_z_m )
+   ) / (1.0 + 6.0 * a);
+
+ //value.a *= loss;
+ imageStore(img_output, coords, value);
+}

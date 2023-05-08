@@ -1,0 +1,111 @@
+#version 450
+
+layout(local_size_x = 8 , local_size_y = 8, local_size_z = 8) in;
+
+layout (rgba32f, binding = 0) uniform image3D img_output;
+
+uniform sampler3D input_tex;
+uniform float dt;
+uniform int b;
+uniform int w;
+uniform float loss;
+uniform float diff;
+
+void main()
+{
+
+ float fw = float(w);
+ ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
+ ivec3 c = coords;
+ float a = dt * diff * fw * fw * fw;
+
+ //texel_x_p == x plus, texel_x_m == x moins
+ vec4 texel = texelFetch(input_tex, c, 0);
+ vec4 texel_x_p = texelFetch(input_tex, ivec3(c.x + 1, c.y, c.z), 0);
+ vec4 texel_x_m = texelFetch(input_tex, ivec3(c.x - 1, c.y, c.z), 0);
+ vec4 texel_y_p = texelFetch(input_tex, ivec3(c.x, c.y + 1, c.z), 0);
+ vec4 texel_y_m = texelFetch(input_tex, ivec3(c.x, c.y - 1, c.z), 0);
+ vec4 texel_z_p = texelFetch(input_tex, ivec3(c.x, c.y, c.z + 1), 0);
+ vec4 texel_z_m = texelFetch(input_tex, ivec3(c.x, c.y, c.z - 1), 0);
+
+ float alpha = (texel.a +
+                 a * (
+                  texel_x_p.a +
+                  texel_x_m.a +
+                  texel_y_p.a +
+                  texel_y_m.a +
+                  texel_z_p.a +
+                  texel_z_m.a
+   )) / (1.0 + 6.0 * a);
+
+ float sum_a = texel_x_p.a + texel_x_m.a + texel_y_p.a + texel_y_m.a + texel_z_p.a + texel_z_m.a;
+
+/*
+   vec4 value = ( texelFetch(input_tex, c, 0) +
+   a * (
+   texelFetch(input_tex, ivec3(c.x + 1, c.y, c.z), 0) +
+   texelFetch(input_tex, ivec3(c.x - 1, c.y, c.z), 0) +
+   texelFetch(input_tex, ivec3(c.x, c.y + 1, c.z), 0) +
+   texelFetch(input_tex, ivec3(c.x, c.y - 1, c.z), 0) +
+   texelFetch(input_tex, ivec3(c.x, c.y, c.z + 1), 0) +
+   texelFetch(input_tex, ivec3(c.x, c.y, c.z - 1), 0)
+   )
+   ) / (1.0 + 6.0 * a);
+*/
+ vec4 value = ( texel +
+                a * (
+                  texel_x_p * texel_x_p.a +
+                  texel_x_m * texel_x_m.a +
+                  texel_y_p * texel_y_p.a +
+                  texel_y_m * texel_y_m.a +
+                  texel_z_p * texel_z_p.a +
+                  texel_z_m * texel_z_m.a
+   )
+   ) / (1.0 + sum_a * a);
+
+ value.a = alpha;
+ value.a *= loss;
+ imageStore(img_output, coords, value);
+ /*
+   vec4 value = ( texelFetch(input_tex, c, 0) +
+   a * (
+   texelFetch(input_tex, ivec3(c.x + 1, c.y, c.z), 0) +
+   texelFetch(input_tex, ivec3(c.x - 1, c.y, c.z), 0) +
+   texelFetch(input_tex, ivec3(c.x, c.y + 1, c.z), 0) +
+   texelFetch(input_tex, ivec3(c.x, c.y - 1, c.z), 0) +
+   texelFetch(input_tex, ivec3(c.x, c.y, c.z + 1), 0) +
+   texelFetch(input_tex, ivec3(c.x, c.y, c.z - 1), 0)
+   )
+   ) / (1.0 + 6.0 * a);
+ //value = texelFetch(input_tex, c, 0);
+ */
+ /*
+ float fw = float(w);
+ ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
+ ivec3 c = coords;
+ if(coords.x == 0) c.x = 1;
+ if(coords.y == 0) c.y = 1;
+ if(coords.x == (w-1)) c.x = w - 2;
+ if(coords.y == (w-1)) c.y = w - 2;
+
+ float a = dt * diff * fw * fw;
+ vec4 value = ( texelFetch(input_tex, c, 0) +
+  a * (
+  texelFetch(input_tex, ivec2(c.x + 1, c.y), 0) +
+  texelFetch(input_tex, ivec2(c.x - 1, c.y), 0) +
+  texelFetch(input_tex, ivec2(c.x, c.y + 1), 0) +
+  texelFetch(input_tex, ivec2(c.x, c.y - 1), 0)
+  )
+  ) / (1.0 + 4.0 * a);
+
+ if(bool(b)){
+  if(coords.x == 0) value = vec4(-2.0 * value.x, value.y, value.z, 1.0);
+  if(coords.y == 0) value = vec4(value.x, -2.0 * value.y, value.z, 1.0);
+  if(coords.x == (w-1)) value = vec4(-2.0 * value.x, value.y, value.z, 1.0);
+  if(coords.y == (w-1)) value = vec4(value.x, -2.0 * value.y, value.z, 1.0);
+ }
+
+ value *= loss;
+ imageStore(img_output, coords, value);
+ */
+}

@@ -1,0 +1,30 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout (rgba32f, binding = 0) uniform image3D img_output;
+
+uniform sampler3D input_tex;
+uniform ivec3 add_source;
+uniform float dt;
+uniform int w;
+uniform int prof;
+uniform vec4 color;
+
+void main()
+{
+ ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
+ vec4 value = texelFetch(input_tex, coords, 0);
+ float alpha = value.a;
+ int larg = w / 12;
+   if((coords.y < w - add_source.y + larg) &&
+   (coords.y > w - add_source.y - larg) &&
+   (coords.x < add_source.x + larg) &&
+   (coords.x > add_source.x - larg) &&
+   (coords.z < add_source.z + larg) &&
+   (coords.z > add_source.z - larg)){
+
+    value = color;
+   }
+ imageStore(img_output, coords, value);
+}
