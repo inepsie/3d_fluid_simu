@@ -14,5 +14,5 @@ Une soutenance de ce projet est prévue le 7 juin 2023.
 Vidéos de démo du programme :
 
 
-https://user-images.githubusercontent.com/58478614/236960002-54057fd7-13a9-44ca-8b9d-6ac55c354959.mp4
+https://github.com/inepsie/3d_fluid_simu/assets/58478614/ad52841f-d2df-4d66-9e85-6bd855c15850
 
