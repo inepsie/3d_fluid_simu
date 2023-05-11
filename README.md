@@ -16,3 +16,7 @@ Vidéos de démo du programme :
 
 https://github.com/inepsie/3d_fluid_simu/assets/58478614/ad52841f-d2df-4d66-9e85-6bd855c15850
 
+
+
+https://github.com/inepsie/3d_fluid_simu/assets/58478614/ffadedbe-5fb0-4082-8daa-ef63367a195d
+
